@@ -1,0 +1,135 @@
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("Mango legends", "DarkTheme")
+
+local Tab = Window:NewTab("Basic Mango")
+local Section = Tab:NewSection("Player")
+
+Section:NewButton("Fly", "ButtonInfo", function()
+-- GUI-Based Fly Toggle Script (injector-ready)
+-- Click the button to toggle fly mode
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local LP = Players.LocalPlayer
+local Char = LP.Character or LP.CharacterAdded:Wait()
+local HRP = Char:WaitForChild("HumanoidRootPart")
+
+-- GUI Setup
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FlyToggleUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game.CoreGui
+
+local Button = Instance.new("TextButton")
+Button.Size = UDim2.new(0, 120, 0, 40)
+Button.Position = UDim2.new(0, 20, 0, 60)
+Button.Text = "Fly: OFF"
+Button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+Button.Font = Enum.Font.SourceSansBold
+Button.TextSize = 20
+Button.Parent = ScreenGui
+
+-- Fly Variables
+local flying = false
+local bv = nil
+local speed = 60
+local control = {F = 0, B = 0, L = 0, R = 0}
+
+-- Toggle Fly Function
+local function toggleFly()
+	flying = not flying
+	Button.Text = "Fly: " .. (flying and "ON" or "OFF")
+	
+	if flying then
+		bv = Instance.new("BodyVelocity")
+		bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+		bv.Velocity = Vector3.zero
+		bv.Parent = HRP
+	else
+		if bv then bv:Destroy() bv = nil end
+	end
+end
+
+-- Button Click
+Button.MouseButton1Click:Connect(toggleFly)
+
+-- Movement Input
+UIS.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+	local key = input.KeyCode
+	if key == Enum.KeyCode.W then control.F = 1
+	elseif key == Enum.KeyCode.S then control.B = -1
+	elseif key == Enum.KeyCode.A then control.L = -1
+	elseif key == Enum.KeyCode.D then control.R = 1
+	end
+end)
+
+UIS.InputEnded:Connect(function(input)
+	local key = input.KeyCode
+	if key == Enum.KeyCode.W then control.F = 0
+	elseif key == Enum.KeyCode.S then control.B = 0
+	elseif key == Enum.KeyCode.A then control.L = 0
+	elseif key == Enum.KeyCode.D then control.R = 0
+	end
+end)
+
+-- Apply Fly Movement
+RunService.RenderStepped:Connect(function()
+	if flying and bv then
+		local cam = workspace.CurrentCamera.CFrame
+		local moveVec = (cam.LookVector * (control.F + control.B) + cam.RightVector * (control.R + control.L))
+		if moveVec.Magnitude > 0 then
+			bv.Velocity = moveVec.Unit * speed
+		else
+			bv.Velocity = Vector3.zero
+		end
+	end
+end)
+
+end)
+
+Section:NewButton("No Clip", "ButtonInfo", function()
+    -- Define variables
+local noclip = false
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local bodyPart = character:WaitForChild("HumanoidRootPart")
+
+-- Function to toggle noclip
+local function toggleNoclip()
+    noclip = not noclip
+    if noclip then
+        humanoid.PlatformStand = true
+        game:GetService("RunService").Heartbeat:Connect(function()
+            if noclip then
+                bodyPart.Velocity = Vector3.new(0, 0, 0)
+                bodyPart.CFrame = bodyPart.CFrame * CFrame.new(0, 0, 0)  -- Allows movement without gravity
+            end
+        end)
+    else
+        humanoid.PlatformStand = false
+    end
+end
+
+-- Detect key press to toggle noclip (use "N" key to toggle)
+game:GetService("UserInputService").InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Keyboard then
+        if input.KeyCode == Enum.KeyCode.N then
+            toggleNoclip()
+        end
+    end
+end)
+
+-- Ensure noclip is disabled if the character dies
+player.CharacterAdded:Connect(function()
+    character = player.Character or player.CharacterAdded:Wait()
+    humanoid = character:WaitForChild("Humanoid")
+    bodyPart = character:WaitForChild("HumanoidRootPart")
+    noclip = false
+end)
+
+end)
