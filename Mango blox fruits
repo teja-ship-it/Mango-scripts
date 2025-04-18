@@ -1,0 +1,233 @@
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("Mango legends", "DarkTheme")
+
+local Tab = Window:NewTab("Basic Mango")
+local Section = Tab:NewSection("Player")
+
+Section:NewButton("Fly", "ButtonInfo", function()
+-- GUI-Based Fly Toggle Script (injector-ready)
+-- Click the button to toggle fly mode
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local LP = Players.LocalPlayer
+local Char = LP.Character or LP.CharacterAdded:Wait()
+local HRP = Char:WaitForChild("HumanoidRootPart")
+
+-- GUI Setup
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FlyToggleUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game.CoreGui
+
+local Button = Instance.new("TextButton")
+Button.Size = UDim2.new(0, 120, 0, 40)
+Button.Position = UDim2.new(0, 20, 0, 60)
+Button.Text = "Fly: OFF"
+Button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+Button.Font = Enum.Font.SourceSansBold
+Button.TextSize = 20
+Button.Parent = ScreenGui
+
+-- Fly Variables
+local flying = false
+local bv = nil
+local speed = 60
+local control = {F = 0, B = 0, L = 0, R = 0}
+
+-- Toggle Fly Function
+local function toggleFly()
+	flying = not flying
+	Button.Text = "Fly: " .. (flying and "ON" or "OFF")
+	
+	if flying then
+		bv = Instance.new("BodyVelocity")
+		bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+		bv.Velocity = Vector3.zero
+		bv.Parent = HRP
+	else
+		if bv then bv:Destroy() bv = nil end
+	end
+end
+
+-- Button Click
+Button.MouseButton1Click:Connect(toggleFly)
+
+-- Movement Input
+UIS.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+	local key = input.KeyCode
+	if key == Enum.KeyCode.W then control.F = 1
+	elseif key == Enum.KeyCode.S then control.B = -1
+	elseif key == Enum.KeyCode.A then control.L = -1
+	elseif key == Enum.KeyCode.D then control.R = 1
+	end
+end)
+
+UIS.InputEnded:Connect(function(input)
+	local key = input.KeyCode
+	if key == Enum.KeyCode.W then control.F = 0
+	elseif key == Enum.KeyCode.S then control.B = 0
+	elseif key == Enum.KeyCode.A then control.L = 0
+	elseif key == Enum.KeyCode.D then control.R = 0
+	end
+end)
+
+-- Apply Fly Movement
+RunService.RenderStepped:Connect(function()
+	if flying and bv then
+		local cam = workspace.CurrentCamera.CFrame
+		local moveVec = (cam.LookVector * (control.F + control.B) + cam.RightVector * (control.R + control.L))
+		if moveVec.Magnitude > 0 then
+			bv.Velocity = moveVec.Unit * speed
+		else
+			bv.Velocity = Vector3.zero
+		end
+	end
+end)
+
+end)
+
+Section:NewButton("ESP", "ButtonInfo", function()
+-- NPC ESP with Draggable and Black Toggle Button
+-- Click and drag the button to toggle NPC ESP on/off
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+
+local ESP = {}
+local isESPEnabled = false
+
+-- GUI Setup
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ESP_Toggle_GUI"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ResetOnSpawn = false
+
+-- Create the Toggle Button
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0, 200, 0, 50)
+ToggleButton.Position = UDim2.new(0.5, -100, 0.5, -25)
+ToggleButton.Text = "Enable NPC ESP"
+ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)  -- Black button
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.Font = Enum.Font.SourceSansBold
+ToggleButton.TextSize = 20
+ToggleButton.Parent = ScreenGui
+
+-- Draggable functionality for the button
+local dragging, dragInput, dragStart, startPos
+
+local function updateDrag(input)
+	local delta = input.Position - dragStart
+	ToggleButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+ToggleButton.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = ToggleButton.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+ToggleButton.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+		updateDrag(input)
+	end
+end)
+
+-- Settings for NPC ESP
+local boxColor = Color3.fromRGB(0, 255, 0)
+local boxTransparency = 1
+local boxThickness = 1
+
+-- Helper: check if a model is an NPC
+local function isNPC(model)
+	return model:IsA("Model")
+		and model:FindFirstChild("Humanoid")
+		and model:FindFirstChild("HumanoidRootPart")
+		and not Players:GetPlayerFromCharacter(model)
+end
+
+-- Create a box for an NPC
+local function createBox(npc)
+	local box = Drawing.new("Square")
+	box.Color = boxColor
+	box.Thickness = boxThickness
+	box.Filled = false
+	box.Transparency = boxTransparency
+	box.Visible = false
+
+	ESP[npc] = box
+end
+
+-- Update ESP every frame when enabled
+RunService.RenderStepped:Connect(function()
+	if isESPEnabled then
+		for npc, box in pairs(ESP) do
+			if npc and npc.Parent and npc:FindFirstChild("HumanoidRootPart") then
+				local hrp = npc.HumanoidRootPart
+				local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+
+				if onScreen then
+					local distance = (Camera.CFrame.Position - hrp.Position).Magnitude
+					local scale = math.clamp(1000 / distance, 3, 300)
+
+					box.Size = Vector2.new(scale, scale * 1.5)
+					box.Position = Vector2.new(pos.X - box.Size.X / 2, pos.Y - box.Size.Y / 2)
+					box.Visible = true
+				else
+					box.Visible = false
+				end
+			else
+				box.Visible = false
+			end
+		end
+	end
+end)
+
+-- Handle existing NPCs
+for _, obj in ipairs(workspace:GetDescendants()) do
+	if isNPC(obj) then
+		createBox(obj)
+	end
+end
+
+-- Detect new NPCs
+workspace.DescendantAdded:Connect(function(descendant)
+	if isNPC(descendant) then
+		wait(0.1) -- give time to fully load
+		createBox(descendant)
+	end
+end)
+
+-- Cleanup when NPCs are removed
+workspace.DescendantRemoving:Connect(function(descendant)
+	if ESP[descendant] then
+		ESP[descendant]:Remove()
+		ESP[descendant] = nil
+	end
+end)
+
+-- Toggle ESP on button click
+ToggleButton.MouseButton1Click:Connect(function()
+	isESPEnabled = not isESPEnabled
+	ToggleButton.Text = isESPEnabled and "Disable NPC ESP" or "Enable NPC ESP"
+
+	-- Optional: Print status to the output
+	print("NPC ESP is now " .. (isESPEnabled and "ON" or "OFF"))
+end)
+
+end)
