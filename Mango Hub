@@ -92,44 +92,48 @@ end)
 end)
 
 Section:NewButton("No Clip", "ButtonInfo", function()
-    -- Define variables
-local noclip = false
-local player = game.Players.LocalPlayer
+-- Noclip Toggle GUI (Local Script)
+
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+-- Variables
+local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
-local bodyPart = character:WaitForChild("HumanoidRootPart")
+local noclip = false
 
--- Function to toggle noclip
-local function toggleNoclip()
+-- UI Setup
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.Name = "NoclipGUI"
+
+local button = Instance.new("TextButton")
+button.Parent = screenGui
+button.Size = UDim2.new(0, 120, 0, 40)
+button.Position = UDim2.new(0, 10, 0, 10)
+button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 20
+button.Text = "Noclip: OFF"
+
+-- Toggle Function
+button.MouseButton1Click:Connect(function()
     noclip = not noclip
-    if noclip then
-        humanoid.PlatformStand = true
-        game:GetService("RunService").Heartbeat:Connect(function()
-            if noclip then
-                bodyPart.Velocity = Vector3.new(0, 0, 0)
-                bodyPart.CFrame = bodyPart.CFrame * CFrame.new(0, 0, 0)  -- Allows movement without gravity
-            end
-        end)
-    else
-        humanoid.PlatformStand = false
-    end
-end
+    button.Text = "Noclip: " .. (noclip and "ON" or "OFF")
+end)
 
--- Detect key press to toggle noclip (use "N" key to toggle)
-game:GetService("UserInputService").InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Keyboard then
-        if input.KeyCode == Enum.KeyCode.N then
-            toggleNoclip()
+-- Noclip Loop
+RunService.Stepped:Connect(function()
+    if noclip and player.Character then
+        for _, v in pairs(player.Character:GetDescendants()) do
+            if v:IsA("BasePart") and v.CanCollide then
+                v.CanCollide = false
+            end
         end
     end
 end)
 
--- Ensure noclip is disabled if the character dies
-player.CharacterAdded:Connect(function()
-    character = player.Character or player.CharacterAdded:Wait()
-    humanoid = character:WaitForChild("Humanoid")
-    bodyPart = character:WaitForChild("HumanoidRootPart")
-    noclip = false
 end)
 
 end)
